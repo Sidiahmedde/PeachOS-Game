@@ -1,0 +1,94 @@
+• Here’s a walkthrough of the new/changed code and what each piece does.
+
+  Input: src/input/keyboard.c/.h
+
+  - Initializes the PS/2 controller (PIC remap + unmask IRQ0/IRQ1), flushes
+    buffer.
+  - IRQ1 handler reads scancodes from port 0x60, skips releases (bit 7), handles
+    0xE0 prefix, maps:
+      - Printable scancodes via scancode_ascii_map.
+      - Arrow scancodes (0x48/50/4B/4D) to WASD.
+  - Buffers chars into a small ring; keyboard_has_char()/keyboard_pop_char()
+    feed the shell/game.
+
+  Timer: src/timer/timer.c/.h
+
+  - Programs PIT channel 0 via ports 0x43/0x40 at a given frequency (60 Hz in
+    kernel_main).
+  - IRQ0 handler increments tick_count; timer_ticks() reads it; timer_sleep()
+    busy-waits.
+
+  Screen: src/display/screen.c/.h
+
+  - Thin helpers on VGA text memory:
+      - screen_clear() fills the screen with spaces.
+      - screen_putc(x,y,c,color) writes a cell.
+      - screen_print(x,y,str,color) writes a string.
+
+  IDT wiring: src/idt/idt.c and src/idt/idt.asm
+
+  - Adds IRQ0 entry pointing to int20h_handler (timer) and IRQ1 to
+    int21h_handler (keyboard).
+  - Assembly stubs save/restore regs and call the C handlers.
+
+  Kernel shell + game: src/kernel.c
+  Key helpers:
+
+  static void read_line(char* out, int max) {
+      int idx = 0;
+      while (1) {
+          while (!keyboard_has_char()) {}
+          char c = keyboard_pop_char();
+          if (c == '\n' || c == '\r') { print("\n"); break; }
+          if (c == '\b' || c == 127) { if (idx>0) { idx--; print("\b"); }
+  continue; }
+          if (idx < max-1) { char s[2]={c,0}; print(s); out[idx++]=c; }
+      }
+      out[idx]=0;
+  }
+
+  - Backspace-aware line input using the keyboard ring buffer.
+
+  Shell helpers:
+
+  - shell_prompt() prints > .
+  - shell_show_help() lists commands.
+  - keyboard_flush_buffer() drains leftover keystrokes.
+
+  Snake game loop (snake_game()):
+
+  - Sets up a 40x18 grid offset on screen, initializes a snake body array
+    (snake_x[], snake_y[]), direction, food position. Players take turns
+    (prompt for 1–4 players); each run uses WASD/arrows.
+  - Input: consumes buffered keys, updates direction for WASD/arrow, q quits
+    the current run.
+  - Tick pacing: waits ~12 ticks (~5 fps at 60 Hz) using timer_ticks().
+  - Movement: shifts body, moves head, wraps at edges.
+  - Collision: checks head against body → alive=0.
+  - Food: on head/food match, grows and respawns food via simple LCG.
+  - Drawing: clears screen each frame, draws grid dots, food O, snake head @ and
+    body #, shows current length, and “Game Over - press Q” when dead.
+  - After all players take their runs, the terminal shows each score and the
+    winner(s) by length.
+
+  Kernel boot flow:
+
+  - Initializes terminal, GDT/TSS/paging/heap/FS/disk/IDT.
+  - Initializes keyboard, timer (60 Hz), and screen helpers.
+  - Enables interrupts.
+  - Enters a tiny CLI loop:
+      - snake → runs snake_game(), then reinitializes terminal and flushes
+        input.
+      - clear → clears terminal.
+      - help → shows commands.
+      - quit → halts (infinite loop).
+
+  Makefile additions:
+
+  - Builds new objects: ./build/input/keyboard.o, ./build/timer/timer.o, ./
+    build/display/screen.o, and added their directories.
+
+  How to play:
+
+  - Boot image, at > type snake and Enter.
+  - Move with arrows or WASD; wrap at edges; q exits to the prompt.
