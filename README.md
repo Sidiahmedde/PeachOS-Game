@@ -2,6 +2,12 @@
 
 A tiny 32-bit hobby OS kernel (C/ASM for i686) that boots into a VGA text terminal with a minimal shell and a multi-player snake demo (1–4 players, WASD/arrows).
 
+## Why it’s interesting
+- Boots a FAT16 image with custom boot sector + kernel.
+- Real low-level drivers: PS/2 keyboard IRQ handler (maps arrows), PIT timer at 60 Hz, VGA text output.
+- Basic kernel subsystems: GDT/IDT, paging, heap, filesystem layer, TSS.
+- Tiny shell and a multi-player snake game rendered in VGA text mode with wraparound and scoring.
+
 ## Prerequisites
 - `nasm`, `make`, `sudo` (Makefile mounts the image at `/mnt/d`)
 - Cross toolchain: `i686-elf-gcc`, `i686-elf-ld` in `PATH` (build.sh expects `$HOME/opt/cross/bin`)
@@ -28,6 +34,9 @@ qemu-system-i386 -drive format=raw,file=bin/os.bin -serial stdio
 ## Using the shell
 - Type `snake` to launch the snake demo; pick 1–4 players. Controls: WASD or arrows, `q` to end your run. The game wraps at the edges and shows a score table after all runs.
 - Other commands: `clear`, `help`, `quit`
+
+## Screenshot
+![Snake results](pic.png)
 
 ## Clean
 ```bash
