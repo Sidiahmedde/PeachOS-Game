@@ -1,28 +1,33 @@
 # PeachOS-Game
 
-A tiny 32-bit hobby OS kernel written in C/ASM for i686. Builds a bootable FAT16 disk image with a simple user program and drops a text file onto it.
+A tiny 32-bit hobby OS kernel (C/ASM for i686) that boots into a VGA text terminal with a minimal shell and a multi-player snake demo (1–4 players, WASD/arrows).
 
 ## Prerequisites
-- nasm
-- make
-- sudo (used to mount the image while building)
-- Cross toolchain: i686-elf-gcc, i686-elf-ld
-- Optional: qemu-system-i386 (to run)
+- `nasm`, `make`, `sudo` (Makefile mounts the image at `/mnt/d`)
+- Cross toolchain: `i686-elf-gcc`, `i686-elf-ld` in `PATH` (build.sh expects `$HOME/opt/cross/bin`)
+- Optional: `qemu-system-i386` to run the image
 
 ## Build
 ```bash
-./build.sh        # sets PATH to your cross toolchain and runs make all
-# or: make all
+./build.sh        # export PATH to your cross toolchain and run make all
+# or
+make all
 ```
-Build outputs go to `bin/`:
-- `boot.bin` – boot sector
-- `kernel.bin` – kernel binary
-- `os.bin` – combined 16MB disk image (boot + kernel + padding + copied hello.txt)
+Outputs (`bin/`):
+- `boot.bin`  boot sector
+- `kernel.bin`  kernel binary
+- `os.bin`  16MB FAT16 disk image (boot + kernel + padding + copied hello.txt)
 
 ## Run in QEMU
 ```bash
-qemu-system-i386 -hda bin/os.bin
+qemu-system-i386 -hda bin/os.bin          # fullscreen window
+# or for a serial console view:
+qemu-system-i386 -drive format=raw,file=bin/os.bin -serial stdio
 ```
+
+## Using the shell
+- Type `snake` to launch the snake demo; pick 1–4 players. Controls: WASD or arrows, `q` to end your run. The game wraps at the edges and shows a score table after all runs.
+- Other commands: `clear`, `help`, `quit`
 
 ## Clean
 ```bash
@@ -30,7 +35,7 @@ make clean
 ```
 
 ## Layout
-- `src/` – kernel sources (boot, GDT/IDT, paging, heap, filesystem, tasks, keyboard, screen)
+- `src/` – kernel sources (boot, GDT/IDT, paging, heap, filesystem, tasks, keyboard, timer, screen)
 - `programs/blank/` – sample user program
 - `build/` – object files
 - `bin/` – boot sector, kernel, and final disk image
