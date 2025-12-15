@@ -36,7 +36,11 @@ qemu-system-i386 -drive format=raw,file=bin/os.bin -serial stdio
 - Other commands: `clear`, `help`, `quit`
 
 ## Screenshot
-![Snake results](pic.png)
+<p align="center">
+  <img src="pic.png" alt="Snake demo results" width="420">
+  <br>
+  <em>Snake demo results after a two-player run (WASD/arrows, wraparound grid).</em>
+</p>
 
 ## Clean
 ```bash
